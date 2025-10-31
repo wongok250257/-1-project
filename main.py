@@ -3,12 +3,16 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# 페이지 설정
 st.set_page_config(page_title="주민등록 인구 및 세대현황 시각화", layout="wide")
 
+# 제목
 st.title("📊 주민등록 인구 및 세대현황(월간) 시각화")
-st.write("CSV 파일을 업로드하거나 기본 데이터를 불러와 시각화할 수 있습니다.")
+st.write("CSV 파일을 업로드하면 자동으로 시각화됩니다.")
 
+# -----------------------
 # 파일 업로드
+# -----------------------
 uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=["csv"])
 
 @st.cache_data
@@ -22,14 +26,18 @@ def read_csv_flexible(file):
 if uploaded_file:
     df = read_csv_flexible(uploaded_file)
 else:
-    st.info("CSV 파일을 업로드하면 자동으로 시각화됩니다.")
+    st.info("CSV 파일을 업로드해주세요.")
     st.stop()
 
+# -----------------------
 # 데이터 미리보기
+# -----------------------
 st.subheader("데이터 미리보기")
 st.dataframe(df.head())
 
-# 날짜, 지역, 인구 관련 컬럼 자동 탐색
+# -----------------------
+# 주요 컬럼 자동 탐색
+# -----------------------
 cols = df.columns.tolist()
 date_col = next((c for c in cols if any(k in c for k in ["기간", "년월", "기준", "date", "월"])), None)
 region_col = next((c for c in cols if any(k in c for k in ["행정구역", "지역", "시도", "시군구", "구분"])), None)
@@ -49,7 +57,9 @@ try:
 except Exception:
     pass
 
+# -----------------------
 # 사용자 선택
+# -----------------------
 target_col = st.selectbox("시각화할 수치 컬럼을 선택하세요", value_cols)
 
 if region_col:
@@ -62,7 +72,9 @@ if region_col:
 else:
     filtered = df.copy()
 
+# -----------------------
 # Plotly 시각화
+# -----------------------
 st.subheader("📈 시각화 결과")
 
 if region_col:
@@ -85,7 +97,9 @@ fig.update_layout(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+# -----------------------
 # 통계 요약
+# -----------------------
 st.subheader("📊 통계 요약")
 st.write(filtered.describe())
 
