@@ -3,10 +3,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# 페이지 설정
 st.set_page_config(page_title="주민등록 인구 및 세대현황 시각화", layout="wide")
 
-# 제목
 st.title("📊 주민등록 인구 및 세대현황(월간) 시각화")
 st.write("CSV 파일을 업로드하면 자동으로 시각화됩니다.")
 
@@ -17,14 +15,44 @@ uploaded_file = st.file_uploader("CSV 파일을 업로드하세요", type=["csv"
 
 @st.cache_data
 def read_csv_flexible(file):
-    """UTF-8 → CP949 순서로 읽기"""
-    try:
-        return pd.read_csv(file, encoding='utf-8')
-    except Exception:
-        return pd.read_csv(file, encoding='cp949')
+    """CSV 읽기: UTF-8 → CP949 → 자동 구분자 시도"""
+    import io
 
+    if file is None:
+        return None
+
+    # 파일 스트림을 처음으로 되돌림
+    file.seek(0)
+    data = file.read()
+    if not data:
+        raise ValueError("⚠️ 업로드한 파일이 비어 있습니다.")
+    file.seek(0)  # 다시 처음으로
+
+    # 여러 시도
+    encodings = ['utf-8-sig', 'utf-8', 'cp949', 'euc-kr']
+    delimiters = [',', ';', '\t']
+
+    for enc in encodings:
+        for delim in delimiters:
+            try:
+                file.seek(0)
+                df = pd.read_csv(file, encoding=enc, sep=delim)
+                if df.shape[1] > 1:  # 최소 2개 컬럼 이상이면 성공
+                    return df
+            except Exception:
+                continue
+
+    raise ValueError("❌ CSV 파일을 읽을 수 없습니다. 인코딩이나 구분자를 확인해주세요.")
+
+# -----------------------
+# CSV 불러오기
+# -----------------------
 if uploaded_file:
-    df = read_csv_flexible(uploaded_file)
+    try:
+        df = read_csv_flexible(uploaded_file)
+    except Exception as e:
+        st.error(f"파일을 불러오는 중 오류 발생: {e}")
+        st.stop()
 else:
     st.info("CSV 파일을 업로드해주세요.")
     st.stop()
